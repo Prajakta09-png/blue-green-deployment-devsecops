@@ -30,6 +30,25 @@ spec:
                 configMapKeyRef:
                   name: app-config
                   key: ENVIRONMENT
+
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 100
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+
           livenessProbe:
             httpGet:
               path: /health
