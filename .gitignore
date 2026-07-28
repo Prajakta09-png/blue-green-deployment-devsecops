@@ -1,0 +1,25 @@
+i# Python
+__pycache__/
+*.pyc
+venv/
+.pytest_cache/
+
+# Environment files
+.env
+
+# Logs
+*.log
+
+# Terraform
+terraform/.terraform/
+*.tfstate
+*.tfstate.*
+terraform.tfvars
+
+# OS/editor files
+.DS_Store
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
