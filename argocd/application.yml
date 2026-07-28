@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+
+kind: Application
+
+metadata:
+  name: blue-green-devsecops-app
+  namespace: argocd
+
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/Prajakta09-png/blue-green-deployment-devsecops.git
+    targetRevision: main
+    path: k8s
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: devsecops-platform
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
