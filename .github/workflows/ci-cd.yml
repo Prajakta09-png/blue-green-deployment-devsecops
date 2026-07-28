@@ -57,4 +57,4 @@ jobs:
         if: github.event_name == 'push'
         run:
           docker push ${{ secrets.DOCKER_USERNAME }}/devsecops-flask-app:${{ github.sha }}
-        docker push ${{ secrets.DOCKER_USERNAME }}/devsecops-flask-app:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/devsecops-flask-app:latest
