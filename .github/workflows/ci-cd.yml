@@ -24,17 +24,17 @@ jobs:
 
       - name: Install test dependencies
         working-directory: ./app
-        run:
-          pip install --upgrade pip
-          pip install -r requirements-dev.txt
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
 
       - name: Run unit tests
         working-directory: ./app
-        run:
+        run: |
           pytest
 
       - name: Build Docker Image
-        run:
+        run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/devsecops-flask-app:${{ github.sha }} ./app
           docker tag ${{ secrets.DOCKER_USERNAME }}/devsecops-flask-app:${{ github.sha }} ${{ secrets.DOCKER_USERNAME }}/devsecops-flask-app:latest
 
@@ -55,6 +55,6 @@ jobs:
 
       - name: Push Docker image to DockerHub
         if: github.event_name == 'push'
-        run:
+        run: |
           docker push ${{ secrets.DOCKER_USERNAME }}/devsecops-flask-app:${{ github.sha }}
           docker push ${{ secrets.DOCKER_USERNAME }}/devsecops-flask-app:latest
