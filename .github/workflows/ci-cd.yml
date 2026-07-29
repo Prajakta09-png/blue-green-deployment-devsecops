@@ -69,7 +69,7 @@ jobs:
         if: github.event_name == 'push'
         run: |
           docker push ${{ secrets.DOCKER_USERNAME }}/devsecops-flask-app:${{ github.sha }}
-          docker push ${{ secrets.DOCKER_PASSWORD }}/devsecops-flask-app:latest
+          docker push ${{ secrets.DOCKER_USERNAME }}/devsecops-flask-app:latest
 
       - name: Update Kubernetes mainfests with new image tag
         if: github.event_name == 'push'
@@ -94,7 +94,7 @@ jobs:
 
       - name: Send success email notification
         if: success() && github.event_name == 'push'
-        uses: daidd6/action-send-mail@v3
+        uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
           server_port: 465
@@ -121,23 +121,23 @@ jobs:
             - Kubernetes manifests updated
             - ArgoCD will sync the updated manifests to Kubernets
 
-        - name: Send failure email notification
-          if: failure() && github.event_name == 'push'
-          uses: dawidd6/action-send-mail@v3
-          with:
-            server_address: smtp.gmail.com
-            server_port: 465
-            secure: true
-            username: ${{ secrets.MAIL_USERNAME }}
-            password: ${{ secrets.MAIL_PASSWORD }}
-            subject: "SecureGitOps Deployment Pipeline Failed"
-            to: ${{ secrets.NOTIFICATION_EMAIL }}
-            from: SecureGitOps CI/CD
-            body: |
-              SecureGitOps CI/CD pipeline failed.
+      - name: Send failure email notification
+        if: failure() && github.event_name == 'push'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "SecureGitOps Deployment Pipeline Failed"
+          to: ${{ secrets.NOTIFICATION_EMAIL }}
+          from: SecureGitOps CI/CD
+          body: |
+           SecureGitOps CI/CD pipeline failed.
 
-              Repository: ${{ github.repository }}
-              Branch: ${{ github.ref_name }}
-              Commit: ${{ github.sha }}
+           Repository: ${{ github.repository }}
+           Branch: ${{ github.ref_name }}
+           Commit: ${{ github.sha }}
 
-              Please check the GitHub Actions logs.
+             Please check the GitHub Actions logs.
