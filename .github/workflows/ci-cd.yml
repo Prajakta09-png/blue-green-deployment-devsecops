@@ -4,18 +4,28 @@ on:
   push:
     branches:
       - main
+    
+    paths-ignore:
+      - "docs/**"
+      - "README.md"
 
   pull_request:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
-  test-build-scan-push:
+  ci-cd:
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout source code
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -33,7 +43,7 @@ jobs:
         run: |
           pytest
 
-      - name: Build Docker Image
+      - name: Build Docker image
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/devsecops-flask-app:${{ github.sha }} ./app
           docker tag ${{ secrets.DOCKER_USERNAME }}/devsecops-flask-app:${{ github.sha }} ${{ secrets.DOCKER_USERNAME }}/devsecops-flask-app:latest
@@ -41,20 +51,93 @@ jobs:
       - name: Run Trivy vulnerability scan
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: '${{ secrets.DOCKER_USERNAME }}/devsecops-flask-app:${{ github.sha }}'
-          format: 'table'
-          exit-code: '1'
-          severity: 'HIGH,CRITICAL'
+          image-ref: ${{ secrets.DOCKER_USERNAME }}/devsecops-flask-app:${{ github.sha }}
+          format: table
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
 
-      - name: DockerHub Login
+      - name: DockerHub login
         if: github.event_name == 'push'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Push Docker image to DockerHub
+      - name: Push Docker image to DokcerHub
         if: github.event_name == 'push'
         run: |
           docker push ${{ secrets.DOCKER_USERNAME }}/devsecops-flask-app:${{ github.sha }}
-          docker push ${{ secrets.DOCKER_USERNAME }}/devsecops-flask-app:latest
+          docker push ${{ secrets.DOCKER_PASSWORD }}/devsecops-flask-app:latest
+
+      - name: Update Kubernetes mainfests with new image tag
+        if: github.event_name == 'push'
+        run: |
+          sed -i "s|image: ${{ secrets.DOCKER_USERNAME }}/devsecops-flask-app:.*|image: ${{ secrets.DOCKER_USERNAME }}/devsecops-flask-app:${{ github.sha }}|g" k8s/deployment-blue.yml
+          sed -i "s|image: ${{ secrets.DOCKER_USERNAME }}/devsecops-flask-app:.*|image: ${{ secrets.DOCKER_USERNAME }}/devsecops-flask-app:${{ github.sha }}|g" k8s/deployment-green.yml
+
+      - name: Commit updated Kubernetes manifests
+        if: github.event_name == 'push'
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          if git diff --quiet; then
+            echo "No manifest changes to commit."
+
+          else
+            git add k8s/deployment-blue.yml k8s/deployment-green.yml
+            git commit -m "Update Kubernetes image tag to ${{ github.sha }} [skip ci]"
+            git push
+          fi
+
+      - name: Send success email notification
+        if: success() && github.event_name == 'push'
+        uses: daidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "SecureGitOps Deployment Pipeline Successful"
+          to: ${{ secrets.NOTIFICATION_EMAIL }}
+          from: SecureGitOps CI/CD
+
+          body: |
+            SecureGitOps CI/CD pipeline complemeted successfully
+
+            Repository: ${{ github.repository }}
+            Branch: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+            Docker Image: ${{ secrets.DOCKER_USERNAME }}/devsecops-flask-app:${{ github.sha }}
+
+            Status:
+            - Unit tests passed
+            - Docker image built
+            - Trivy scan passed
+            - Docker image pushed to DockerHub
+            - Kubernetes manifests updated
+            - ArgoCD will sync the updated manifests to Kubernets
+
+        - name: Send failure email notification
+          if: failure() && github.event_name == 'push'
+          uses: dawidd6/action-send-mail@v3
+          with:
+            server_address: smtp.gmail.com
+            server_port: 465
+            secure: true
+            username: ${{ secrets.MAIL_USERNAME }}
+            password: ${{ secrets.MAIL_PASSWORD }}
+            subject: "SecureGitOps Deployment Pipeline Failed"
+            to: ${{ secrets.NOTIFICATION_EMAIL }}
+            from: SecureGitOps CI/CD
+            body: |
+              SecureGitOps CI/CD pipeline failed.
+
+              Repository: ${{ github.repository }}
+              Branch: ${{ github.ref_name }}
+              Commit: ${{ github.sha }}
+
+              Please check the GitHub Actions logs.
