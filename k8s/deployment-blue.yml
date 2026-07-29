@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: flask-app
-          image: itisscdac/devsecops-flask-app:272b2f8cf02c36edb53a5e5f0909bf32010200da
+          image: itisscdac/devsecops-flask-app:7333b34d070893cc88de8c66036af77cd8b4d52c
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
