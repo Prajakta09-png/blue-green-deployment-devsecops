@@ -16,7 +16,7 @@ SecureGitOps is a DevSecOps and GitOps project that automates secure Kubernetes 
 
 ## Architecture Flow
 
-Code Push → GitHub Actions → Tests → Docker Build → Trivy Scan → DockerHub Push → Manifest Update → ArgoCD Sync → Kubernetes Deployment → Monitoring + Logging → Email Notification
+![SecureGitOps Architecture](docs/images/architecture-flow.png)
 
 ## Tech Stack
 
